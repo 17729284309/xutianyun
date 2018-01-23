@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+	<meta charset="UTF-8">
+	<title>锅打灰太郎</title>
+	<style>
+	*{
+		margin:0;
+		padding:0;
+	}
+	#container{
+		margin:50px auto;
+		width:320px;
+		height: 480px;
+		background:url(images/game_bg.jpg);
+		position:relative;
+	}
+	#start{
+		/*display: none;*/
+		position:absolute;
+		left:80px;
+		top:200px;
+		font-size:30px;
+	}
+	#start p{
+		text-shadow:0 0 5px yellow;
+		margin:10px 0;
+		text-align: center;
+		color:red;
+		font-weight: bolder;
+	}
+	#over{
+		font-weight: bolder;
+		text-shadow:0 0 5px yellow;
+		color: red;
+		display:none;
+		font-size:30px;
+		position: absolute;
+		left:100px;
+		top:240px;
+	}
+	#startAgain{
+		font-weight: bolder;
+		text-shadow:0 0 5px yellow;
+		color: red;
+		font-size:30px;
+		position:absolute;
+		left:100px;
+		top:300px;
+		display: none;
+	}
+	#timing{
+		width:180px;
+		height:16px;
+		background:red;
+		position:absolute;
+		left:63px;
+		top:66px;
+		border-radius:10px;
+	}
+	#score{
+		position: absolute;
+		left:60px;
+		top:9px;
+		font-size: 20px;
+		color: #fff;
+		font-weight: bolder;
+	}
+	#wolves{
+		position: relative;
+	}
+	#wolves>img{
+		position: absolute;
+	}
+
+</style>
+</head>
+<body>
+	<div id="container">
+		<!-- 分数 -->
+		<div id="score">0</div>
+		<!-- 倒计时 -->
+		<div id="timing"></div>
+		<!-- 开始模块 -->
+		<div id="start">
+			<p>开始</p>
+			<p id="p">游戏操作说明</p>
+		</div>
+		<!-- 结束模块  -->
+		<div id="over">
+			<p>游戏结束</p>
+		</div>
+		<!-- 重新开始 -->
+		<div id="startAgain">
+			<p>Again</p>
+		</div>
+		<!-- 狼 -->
+		<div id="wolves"></div>
+	</div>
+	<script>
+		//获取元素
+		var timingDiv = document.getElementById('timing');
+		var scoreDiv = document.querySelector('#score');
+		var startDiv = document.querySelector('#start>p');
+		var overDiv = document.querySelector('#over ');
+		var wolves = document.querySelector('#wolves');
+		var start = document.querySelector('#start');
+		var startAgain = document.querySelector('#startAgain');
+
+		//狼的位置数组(二维数组，内层数组第0个值代表left，第一个值代表top)
+		var posArr = [
+		['98px','115px'],
+		['17px','160px'],
+		['15px','220px'],
+		['30px','293px'],
+		['122px','273px'],
+		['207px','295px'],
+		['200px','211px'],
+		['187px','141px'],
+		['100px','185px']
+		];
+		var score = 0; //分数(全局变量)
+
+		
+		//产生两个数之间的随机数
+		function randomNum(x,y) {
+			return Math.round(Math.random() * (y - x) + x);
+		}
+		
+
+		function createWolf() {
+			var wolf = new Image();//创建狼
+			//根据随机数的值，按比例生成小灰灰或灰太郎，设置类型
+			wolf.type = randomNum(0,100) > 80 ? 'x' : 'h';
+			wolf.index = 0; //初始图片的下标
+			wolf.src = 'images/' + wolf.type + wolf.index + '.png';
+
+			// 确定狼的位置
+			var indexNum; //随机位置
+
+			//判断新wolf的位置是否和已存在的wolf的位置重复
+			var bol = 1;
+			while(bol) {
+				//获取所有的狼
+				var allWolf = wolves.children;
+				indexNum = randomNum(0,8);
+				for(var i = 0; i < allWolf.length;i++) {
+				//获取每个狼的left或者top
+				if(allWolf[i].style.left == posArr[indexNum][0]) {
+					//indexNum不能使用，重新生成一个位置
+					break;
+				}
+			}
+
+			//如果for循环次数全部执行，代表不重复，可以使用关闭开关，while循环不在执行
+			if(i == allWolf.length) {
+				bol = 0;
+			}
+		}
+
+
+
+			wolf.style.left = posArr[indexNum][0];//left
+			wolf.style.top = posArr[indexNum][1];//top
+
+			wolves.appendChild(wolf);
+			return wolf;
+		}
+		
+		function wolfFn () {
+			var wolf = createWolf();//创建一个新的狼对象
+			wolf.appearTime = setInterval(function(){
+				wolf.index++;//创建之后下标增加(0.png ~ 5.png)
+				wolf.src = 'images/' + wolf.type + wolf.index + '.png';//重置wolf的src
+				if(wolf.index == 5) { //加到最大时狼消失
+					clearInterval(wolf.appearTime); // index不能再加
+
+					wolf.disappearTime = setInterval(function(){
+						wolf.index--; //狼消失（5.png ~ 0.png)
+						wolf.src = 'images/' + wolf.type + wolf.index + '.png';
+						if(wolf.index == 0) {  //减到最小。不在减
+							clearInterval(wolf.disappearTime);
+							wolf.remove();//在页面里移除wolf节点
+						}
+					},100);
+				}
+			},100);
+
+			beatWolf(wolf);
+		}
+
+		//点击事件
+		function beatWolf(a) {
+			a.flag = 1; //自定义属性flag作为开关，狼只能点击一次
+			a.onclick = function () {
+				if(a.flag) {
+					//清除狼出现和消失的计时器
+					clearInterval(a.appearTime);
+					clearInterval(a.disappearTime);
+					a.index = 5; //从当前状态到被击打状态
+					a.afterClickTime = setInterval(function(){
+					a.index++; //5 ~ 9png
+					a.src = 'images/' + a.type + a.index + '.png';
+					if(a.index == 9) {
+						//清除计时器
+						clearInterval(a.afterClickTime);
+						//从页面里删除这个元素
+						a.remove();
+					}
+				},100);
+				a.flag = 0;//关闭开关，不能重复点击
+
+				//计算分数
+				if(a.type == 'h') {
+					score += 10;//灰太郎加分
+				}else{
+					score -= 10;// 小灰灰减分
+				}
+				scoreDiv.innerText = score;
+
+				}
+				
+			}
+		}
+
+		//封装函数，每隔一段时间创建一个狼
+		var createWolfTime;
+		function createWolfByTime() {
+			createWolfTime = setInterval(function(){
+				wolfFn();
+			},800);
+		}
+		//createWolfByTime();
+		
+		//倒计时函数
+		function timingChangeFn() {
+			var num = 180;//倒计时总长
+			var timer1 = setInterval(function(){
+				num--;
+				timingDiv.style.width = num + 'px';
+				//长度减为0，清除计时器
+				if(num <= 0) {
+					clearInterval(timer1);
+					startAgain.style.display = 'block';
+					overDiv.style.display = 'block';
+					clearInterval(createWolfTime);// 清除创建狼的计时器
+				}
+
+			},50)
+		}
+		
+		//开始按钮点击事件
+		startDiv.onclick = function() {
+			start.style.display  = 'none';//隐藏开始模块
+			createWolfByTime();//创建狼
+			timingChangeFn();//倒计时
+		}
+
+		//重新开始
+		startAgain.onclick = function() {
+			startAgain.style.display = 'none';
+			overDiv.style.display = 'none';
+			score = 0;
+			createWolfByTime();
+			timingChangeFn();//倒计时
+
+		}
+	</script>
+</body>
+</html>
